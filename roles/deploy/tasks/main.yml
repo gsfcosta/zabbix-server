@@ -1,0 +1,65 @@
+---
+  - name: Log into private registry
+    docker_login:
+      registry: "{{ DOCKER_REGISTRY }}"
+      username: "{{ DOCKER_LOGIN }}"
+      password: "{{ DOCKER_PASS }}"
+
+  - name: Pull docker image
+    docker_image:
+      name: "{{ DOCKER_REGISTRY }}/{{ SYSTEM }}/{{ COMPONENT }}"
+      state: present
+      tag: "{{ DOCKER_TAG }}"
+      force: true
+      nocache: yes
+
+  - name: Stop Docker container
+    docker_container:
+      name: "{{ SYSTEM }}-{{ COMPONENT }}"
+      state: absent
+
+  - name: Create volume
+    file:
+      path: "/var/opt/docker/{{ SYSTEM }}/{{ COMPONENT }}/"
+      owner: root
+      group: root
+      mode: 0777
+      state: directory
+
+  - name: Start container
+    docker_container:
+      name: "{{ SYSTEM }}-{{ COMPONENT }}"
+      state: started
+      image: "{{ DOCKER_REGISTRY }}/{{ SYSTEM }}/{{ COMPONENT }}:{{ DOCKER_TAG }}"
+      env:
+        ZABBIX_URL: "{{ ZABBIX_URL }}"
+        ZABBIX_USER: "{{ ZABBIX_USER }}"
+        ZABBIX_PASS: "{{ ZABBIX_PASS }}"
+        SM_URL: "{{ SM_URL }}"
+        SM_USER: "{{ SM_USER }}"
+        SM_PASS: "{{ SM_PASS }}"
+        CMDB_URL: "{{ CMDB_URL }}"
+        DBHost: "{{ DBHost }}"
+        DBName: "{{ DBName }}"
+        DBUser: "{{ DBUser }}"
+        DBPassword: "{{ DBPassword }}"
+        DBPassword: "{{ DBPassword }}"
+        DBPassword: "{{ DBPassword }}"
+        http_proxy: "http://10.154.9.142:3128"
+        https_proxy: "http://10.154.9.142:3128"
+      ports:
+        - "10051:10051"
+      volumes:
+        - "/var/opt/docker/{{ SYSTEM }}/{{ COMPONENT }}:/opt/{{ SYSTEM }}/{{ COMPONENT }}/var"
+        - "/zabbix_scripts/:/zabbix_scripts/"
+      restart_policy: always
+
+  - name: Remove old images
+    shell: "docker images | grep {{ DOCKER_REGISTRY }}/{{ SYSTEM }}/{{ COMPONENT }} | grep -v {{ DOCKER_TAG }} | awk '{print $3}' | while read image; do docker rmi -f $image; done "
+    ignore_errors: yes
+
+  - name: Tag image with latest
+    shell: "docker tag {{ DOCKER_REGISTRY }}/{{ SYSTEM }}/{{ COMPONENT }}:{{ DOCKER_TAG }} {{ DOCKER_REGISTRY }}/{{ SYSTEM }}/{{ COMPONENT }}:latest"
+
+  - name: Push latest tag
+    shell: "docker push {{ DOCKER_REGISTRY }}/{{ SYSTEM }}/{{ COMPONENT }}:latest"
