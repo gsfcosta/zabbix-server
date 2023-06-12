@@ -10,8 +10,8 @@
          build:
             path: "{{ playbook_dir }}/roles/build/tasks"
             args:
-                http_proxy: 'http://10.154.9.142:3128'
-                https_proxy: 'http://10.154.9.142:3128'
+                http_proxy: 'http://127.0.0.1:3128'
+                https_proxy: 'http://127.0.0.1:3128'
             nocache: yes
          name: "{{ DOCKER_REGISTRY }}/{{ SYSTEM }}/{{ COMPONENT }}"
          tag: "{{ DOCKER_TAG }}"
